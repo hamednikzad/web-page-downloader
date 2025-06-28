@@ -6,43 +6,43 @@ public static class Program
 {
     public static async Task Main(string[] args)
     {
-        await using var log = new LoggerConfiguration()
-            .WriteTo.Console()
-            .CreateLogger();
+        ConfigLogging();
+
+        CleanPath();
         
-        Log.Logger = log;
-
-        var urls = new[] { "https://g.com/hamednikzad/web-page-downloader", "https://github.com/twbs/bootstrap" };
-        var tasks = urls.Select(DownloadUrlToFile);
-
-        await foreach (var task in Task.WhenEach(tasks))
+        var urls = new[]
         {
-            if (task.Result.isSucceed)
-            {
-                Log.Information("Download {Url} succeed: {Result}", task.Result.url, task.Result.response.Substring(0, 20));
-            }
+            "https://github.com/hamednikzad/web-page-downloader", "https://github.com/twbs/bootstrap",
+            "https://github.com/some-invalid-url"
+        };
+
+        var downloader = new Downloader(OutputPath);
+        await downloader.Download(urls);
+    }
+
+    private static readonly string OutputPath = Path.Combine(Directory.GetCurrentDirectory(), "output");
+    private static void CleanPath()
+    {
+        Directory.CreateDirectory(OutputPath);
+
+        var di = new DirectoryInfo(OutputPath);
+
+        foreach (var file in di.GetFiles())
+        {
+            file.Delete();
+        }
+
+        foreach (var dir in di.GetDirectories())
+        {
+            dir.Delete(true);
         }
     }
 
-    private static async Task<(string url, bool isSucceed, string response)> DownloadUrlToFile(string url)
+    private static void ConfigLogging()
     {
-        using var client = new HttpClient();
-        
-        try
-        {
-            using var response = await client.GetAsync(url);
-
-            if (!response.IsSuccessStatusCode) return (url, false, "");
-            
-            var responseBody = await response.Content.ReadAsStringAsync();
-            return (url, true, responseBody);
-
-        }
-        catch (HttpRequestException e)
-        {
-            Log.Error(e, "Download {Url} failed", url);
-            
-            return (url, false, string.Empty);
-        }
+        Log.Logger = new LoggerConfiguration()
+            .WriteTo.Console()
+            .CreateLogger();
+        ;
     }
 }
