@@ -1,27 +1,28 @@
 ﻿using System.Diagnostics;
-using System.Text.RegularExpressions;
 using Serilog;
 
-namespace WebPageDownloader;
+namespace WebPageDownloader.Services;
 
-public class Downloader(string path)
+public class Downloader(IPathHelper pathHelper, ILogger logger)
 {
     public async Task Download(string[] urls)
     {
+        logger.Information("The Urls will be downloaded to: {Path}", pathHelper.GetOutputPath());
+        
         var tasks = urls.Select(DownloadUrlToFile);
 
         await foreach (var task in Task.WhenEach(tasks))
         {
             if (task.Result.IsSucceed)
             {
-                Log.Information("Download {Url} succeed in {Time}", task.Result.Url, task.Result.ExecutionTime);
+                logger.Information("Download {Url} succeed in {Time}", task.Result.Url, task.Result.ExecutionTime);
             }
         }
     }
 
     private async Task HandleSuccessResult(string url, byte[] response)
     {
-        var filename = GetFileNameFromUrl(url);
+        var filename = pathHelper.GetFileNameFromUrl(url);
         var fStream = File.Create(filename);
         await fStream.WriteAsync(response);
         fStream.Close();
@@ -55,21 +56,15 @@ public class Downloader(string path)
                 return (result, Stopwatch.GetElapsedTime(startDate));
             }
 
-            Log.Error("Download {Url} failed. Http status code: {Code}", url, response.StatusCode);
+            logger.Error("Download {Url} failed. Http status code: {Code}", url, response.StatusCode);
 
             return (null, TimeSpan.Zero);
         }
         catch (HttpRequestException e)
         {
-            Log.Error(e, "Download {Url} failed", url);
+            logger.Error(e, "Download {Url} failed", url);
 
             return (null, TimeSpan.Zero);
         }
-    }
-
-    private string GetFileNameFromUrl(string url)
-    {
-        var correctedUrl = Regex.Replace(url, "[\\/:*?<>|\"]", "");
-        return Path.Combine(path, correctedUrl + ".html");
     }
 }

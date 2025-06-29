@@ -1,4 +1,4 @@
-﻿namespace WebPageDownloader;
+﻿namespace WebPageDownloader.Services;
 
 public record DownloadResult(string Url, bool IsSucceed, TimeSpan ExecutionTime)
 {

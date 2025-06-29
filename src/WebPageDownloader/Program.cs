@@ -1,4 +1,5 @@
 ﻿using Serilog;
+using WebPageDownloader.Services;
 
 namespace WebPageDownloader;
 
@@ -8,41 +9,34 @@ public static class Program
     {
         ConfigLogging();
 
-        CleanPath();
-        
-        var urls = new[]
+        string[] urls;
+        try
         {
-            "https://github.com/hamednikzad/web-page-downloader", "https://github.com/twbs/bootstrap",
-            "https://github.com/some-invalid-url"
-        };
+            urls = new UrlProcessor(args).GetUrlsFromFile();
+        }
+        catch (Exception e)
+        {
+            Log.Logger.Error("Failed to get urls from file: {Error}", e.Message);
+            return;
+        }
 
-        var downloader = new Downloader(OutputPath);
+        var pathHelper = new PathHelper(Directory.GetCurrentDirectory());
+        pathHelper.CleanPath();
+        
+        // var urls = new[]
+        // {
+        //     "https://github.com/hamednikzad/web-page-downloader", "https://github.com/twbs/bootstrap",
+        //     "https://github.com/some-invalid-url"
+        // };
+
+        var downloader = new Downloader(pathHelper, Log.Logger);
         await downloader.Download(urls);
     }
-
-    private static readonly string OutputPath = Path.Combine(Directory.GetCurrentDirectory(), "output");
-    private static void CleanPath()
-    {
-        Directory.CreateDirectory(OutputPath);
-
-        var di = new DirectoryInfo(OutputPath);
-
-        foreach (var file in di.GetFiles())
-        {
-            file.Delete();
-        }
-
-        foreach (var dir in di.GetDirectories())
-        {
-            dir.Delete(true);
-        }
-    }
-
+    
     private static void ConfigLogging()
     {
         Log.Logger = new LoggerConfiguration()
             .WriteTo.Console()
             .CreateLogger();
-        ;
     }
 }
