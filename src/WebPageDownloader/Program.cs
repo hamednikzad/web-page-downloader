@@ -22,12 +22,6 @@ public static class Program
 
         var pathHelper = new PathHelper(Directory.GetCurrentDirectory());
         pathHelper.CleanPath();
-        
-        // var urls = new[]
-        // {
-        //     "https://github.com/hamednikzad/web-page-downloader", "https://github.com/twbs/bootstrap",
-        //     "https://github.com/some-invalid-url"
-        // };
 
         var downloader = new Downloader(pathHelper, Log.Logger);
         await downloader.Download(urls);
